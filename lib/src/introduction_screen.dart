@@ -209,7 +209,7 @@ class IntroductionScreen extends StatefulWidget {
   final Widget? globalHeader;
 
   /// A footer widget to be shown on every screen
-  final Widget? globalFooter;
+  final Widget? latePageFooter;
 
   /// ScrollController of vertical SingleChildScrollView for every single page
   final List<ScrollController?>? scrollControllers;
@@ -304,7 +304,7 @@ class IntroductionScreen extends StatefulWidget {
     this.controlsPadding = const EdgeInsets.all(16.0),
     this.bodyPadding = EdgeInsets.zero,
     this.globalHeader,
-    this.globalFooter,
+    this.latePageFooter,
     this.scrollControllers,
     this.pagesAxis = Axis.horizontal,
     this.scrollPhysics = const BouncingScrollPhysics(),
@@ -461,7 +461,8 @@ class IntroductionScreenState extends State<IntroductionScreen> {
         child: widget.overrideSkip ??
             IntroButton(
               child: widget.skip!,
-              style: widget.baseBtnStyle?.merge(widget.skipStyle) ?? widget.skipStyle,
+              style: widget.baseBtnStyle?.merge(widget.skipStyle) ??
+                  widget.skipStyle,
               semanticLabel: widget.skipSemantic,
               onPressed: _onSkip,
             ),
@@ -470,7 +471,8 @@ class IntroductionScreenState extends State<IntroductionScreen> {
       leftBtn = widget.overrideBack ??
           IntroButton(
             child: widget.back!,
-            style: widget.baseBtnStyle?.merge(widget.backStyle) ?? widget.backStyle,
+            style: widget.baseBtnStyle?.merge(widget.backStyle) ??
+                widget.backStyle,
             semanticLabel: widget.backSemantic,
             onPressed: !_isScrolling ? previous : null,
           );
@@ -481,7 +483,8 @@ class IntroductionScreenState extends State<IntroductionScreen> {
       rightBtn = widget.overrideDone ??
           IntroButton(
             child: widget.done!,
-            style: widget.baseBtnStyle?.merge(widget.doneStyle) ?? widget.doneStyle,
+            style: widget.baseBtnStyle?.merge(widget.doneStyle) ??
+                widget.doneStyle,
             semanticLabel: widget.doneSemantic,
             onPressed: !_isScrolling ? widget.onDone : null,
           );
@@ -489,10 +492,30 @@ class IntroductionScreenState extends State<IntroductionScreen> {
       rightBtn = widget.overrideNext ??
           IntroButton(
             child: widget.next!,
-            style: widget.baseBtnStyle?.merge(widget.nextStyle) ?? widget.nextStyle,
+            style: widget.baseBtnStyle?.merge(widget.nextStyle) ??
+                widget.nextStyle,
             semanticLabel: widget.nextSemantic,
             onPressed: !_isScrolling ? next : null,
           );
+    }
+
+    Widget? indicator;
+    if (isLastPage) {
+      indicator = const SizedBox.shrink();
+    } else if (!isLastPage) {
+      indicator = Semantics(
+        label: "Page ${_currentPage.round() + 1} of ${getPagesLength()}",
+        excludeSemantics: true,
+        child: DotsIndicator(
+          reversed: widget.rtl,
+          dotsCount: getPagesLength(),
+          position: _currentPage,
+          decorator: widget.dotsDecorator,
+          onTap: widget.isProgressTap && !widget.freeze
+              ? (pos) => animateScroll(pos.toInt())
+              : null,
+        ),
+      );
     }
 
     return Scaffold(
@@ -522,7 +545,9 @@ class IntroductionScreenState extends State<IntroductionScreen> {
                         ?.mapIndexed(
                           (index, page) => IntroPage(
                             page: page,
-                            scrollController: (CustomList(widget.scrollControllers)?.elementAtOrNull(index)),
+                            scrollController:
+                                (CustomList(widget.scrollControllers)
+                                    ?.elementAtOrNull(index)),
                             isTopSafeArea: widget.isTopSafeArea,
                             isBottomSafeArea: widget.isBottomSafeArea,
                           ),
@@ -554,34 +579,25 @@ class IntroductionScreenState extends State<IntroductionScreen> {
                     children: [
                       Expanded(
                         flex: widget.skipOrBackFlex,
-                        child: leftBtn ?? const SizedBox(),
+                        child: leftBtn ?? const SizedBox.shrink(),
                       ),
                       Expanded(
                         flex: widget.dotsFlex,
                         child: Center(
                           child: widget.isProgress
-                              ? Semantics(
-                                  label: "Page ${_currentPage.round() + 1} of ${getPagesLength()}",
-                                  excludeSemantics: true,
-                                  child: DotsIndicator(
-                                    reversed: widget.rtl,
-                                    dotsCount: getPagesLength(),
-                                    position: _currentPage,
-                                    decorator: widget.dotsDecorator,
-                                    onTap: widget.isProgressTap && !widget.freeze ? (pos) => animateScroll(pos.toInt()) : null,
-                                  ),
-                                )
-                              : const SizedBox(),
+                              ? indicator
+                              : const SizedBox.shrink(),
                         ),
                       ),
                       Expanded(
                         flex: widget.nextFlex,
-                        child: rightBtn ?? const SizedBox(),
+                        child: rightBtn ?? const SizedBox.shrink(),
                       ),
                     ].asReversed(widget.rtl),
                   ),
                 ),
-                if (widget.globalFooter != null) widget.globalFooter!
+                if (isLastPage && widget.latePageFooter != null)
+                  widget.latePageFooter!
               ],
             ),
           ),
